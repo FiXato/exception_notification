@@ -56,6 +56,17 @@ module ExceptionNotifiable
     end
   end
 
+  protected
+    def deliver_exception(exception)
+      deliverer = self.class.exception_data
+      data = case deliverer
+        when nil then {}
+        when Symbol then send(deliverer)
+        when Proc then deliverer.call(self)
+      end
+      ExceptionNotifier.deliver_exception_notification(exception, self, request, data)
+    end
+
   private
 
     def local_request?
@@ -84,16 +95,7 @@ module ExceptionNotifiable
 
         else          
           render_500
-
-          deliverer = self.class.exception_data
-          data = case deliverer
-            when nil then {}
-            when Symbol then send(deliverer)
-            when Proc then deliverer.call(self)
-          end
-
-          ExceptionNotifier.deliver_exception_notification(exception, self,
-            request, data)
+          deliver_exception(exception)
       end
     end
 end
