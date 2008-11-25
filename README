@@ -107,5 +107,29 @@ to use different rules for the notification, you will need to implement your
 own rescue_action_in_public method. You can look at the default implementation
 in ExceptionNotifiable for an example of how to go about that.
 
+You can now also call the #deliver_exception method from inside your own
+rescue_from methods which will handle the delivery of the exception notification
+without the rendering.
+This is useful if you already have your own rendering methods.
+Example:
+  class CommentsController < ActionController::Base
+    include ExceptionNotifiable
+
+    rescue_from Exception do |exception|
+      deliver_exception exception
+      puts exception.to_yaml
+      ...
+      respond_to do |type|
+        type.xml  { render_error_xml(exception.message) }
+        type.html { render :file => "#{RAILS_ROOT}/public/500.html", :status => :internal_server_error }
+      end
+    end
+
+    def render_error_xml(error_message)
+      error_structure = {:errors=>{:error=>error_message}}
+      render :xml => error_structure.to_xml(:root => 'xml', :status => :internal_server_error)
+    end
+    ...
+  end
 
 Copyright (c) 2005 Jamis Buck, released under the MIT license
